@@ -2,7 +2,7 @@
 Please follow the instructions for this part of the assignment in THIS order!
 First, download the pre-trained checkpoint from https://drive.google.com/drive/folders/1hypaGqB69SxL7U5ZTDSrwU-bRZBaXE9R?usp=drive_link
 
-Flow matching learns a time-conditioned velocity field that continuously transports a base Gaussian into the data distribution. This section mirrors the diffusion homework setup but swaps the loss and sampler for the flow-matching formulation described in Liu et al. (2022) and Lipman et al. (2022).
+Flow matching learns a time-conditioned velocity field that continuously transports a base Gaussian into the data distribution. This section mirrors the diffusion homework setup but switches to the flow-matching formulation described in Lipman et al. (2022) and Liu et al. (2022).
 
 ## Mathematical Background
 
@@ -16,7 +16,7 @@ This creates **straight-line paths** in image space: at $t=0$ we have pure noise
 ### Ground-Truth Velocity Field
 The velocity along this path is simply the time derivative:
 
-$$u_t = \frac{\mathrm{d} x_t}{\mathrm{d} t} = -z + x_0 = x_0 - z$$
+$$u_t = \frac{\mathrm{d} x_t}{\mathrm{d} t} = x_0 - z$$
 
 **Key insight**: The velocity $u_t = x_0 - z$ is **constant** (independent of $t$) along each trajectory. It points directly from the noise sample to the data sample. This is much simpler than diffusion models, where the target noise $\epsilon_t$ depends on the time-dependent schedule $\bar{\alpha}_t$.
 
@@ -39,13 +39,13 @@ This is called *conditional* flow matching because we supervise the network on i
 ### Sampling via ODE Integration
 Once trained, sampling integrates the learned ODE **forward in time** from noise to data:
 
-$$\frac{\mathrm{d} x}{\mathrm{d} t} = v_\theta(x, t), \quad x_0 \sim \mathcal{N}(0, I), \quad t: 0 \to 1$$
+$$\frac{\mathrm{d} x}{\mathrm{d} t} = v_\theta(x, t), \quad x(0) \sim \mathcal{N}(0, I), \quad t: 0 \to 1$$
 
-We use explicit integrator for this assignment:
+We use an explicit integrator for this assignment:
 - **Euler**: $x_{k+1} = x_k + \Delta t \cdot v_\theta(x_k, t_k)$
 
 ### 4.1 Euler Inference (# TODO 4.1)
-- Start from Gaussian noise $x_0 \sim \mathcal{N}(0, I)$; our sampler integrates the learned velocity field $v_\theta(x, t)$ forward from $t = 0$ to $t = 1$.
+- Start from Gaussian noise $x(0) \sim \mathcal{N}(0, I)$; our sampler integrates the learned velocity field $v_\theta(x, t)$ forward from $t = 0$ to $t = 1$.
 - **Forward pass**: `FlowModel.forward(x_t, t)` should convert floating times to integer indices via `_prepare_t` before calling the UNet.
 - **Euler micro-step**: `FlowModel.ode_euler_step(x, t, dt)` evaluates $v_\theta(x, t)$ with the forward pass and applies the explicit Euler update $x \leftarrow x + dt \cdot v$.
 - **Time grid**: In both `sample` and `sample_given_z`, build a uniform grid `ts` and compute the spacing `dt`. The provided loop calls `ode_euler_step`, and iterates to the final time.
@@ -64,6 +64,5 @@ python inference.py --ckpt fm_final.pth --solver euler --steps 50 --compute-fid
 ```
 
 ## References
-- Liu et al., "Flow Matching for Generative Modeling," NeurIPS 2022.
-- Lipman et al., "Flow Matching: A Path to Neural ODE-based Generative Modeling," 2022.
-- Song et al., "Maximum Likelihood Training of Score-Based Diffusion Models," NeurIPS 2021.
+- Lipman et al., "Flow Matching for Generative Modeling," NeurIPS 2022.
+- Liu et al., "Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow," 2022.
