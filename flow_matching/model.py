@@ -30,8 +30,9 @@ class FlowModel(nn.Module):
     def forward(self, x_t: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         ##################################################################
         # TODO 4.1: Implement the forward pass of the flow matching model.
+        # First, prepare the time step t,
+        # then pass x_t and the prepared t to the model.
         ##################################################################
-        t_in = self._prepare_t(t)
         pass
         ##################################################################
         #                          END OF YOUR CODE                      #
