@@ -20,8 +20,11 @@ $$u_t = \frac{\mathrm{d} x_t}{\mathrm{d} t} = x_0 - z$$
 
 **Key insight**: The velocity $u_t = x_0 - z$ is **constant** (independent of $t$) along each trajectory. It points directly from the noise sample to the data sample. This is much simpler than diffusion models, where the target noise $\epsilon_t$ depends on the time-dependent schedule $\bar{\alpha}_t$.
 
-### Why Straight Lines? (Optimal Transport)
-This construction coincides with the **Benamou-Brenier formulation** of optimal transport. We seek a time-dependent velocity field that transports the base Gaussian distribution $\mathcal{N}(0,I)$ to the data distribution while minimizing kinetic energy. The solution is the **displacement interpolation** (straight lines in data space), which are geodesics in the 2-Wasserstein metric space. By learning to match these optimal velocities, the network learns to follow the most efficient transport paths.
+### Why straight lines?
+
+We connect a noise sample $z$ to a data sample $x_0$ with a straight path. This path has **constant velocity** 
+This makes training simple and stable. **Optimal Transport intuition:** If each $z$ were paired with $x_0$ via the *optimal* quadratic-cost transport map, these straight particle paths would collectively form the Wasserstein-2 “displacement interpolation.” In our homework, $z$ and $x_0$ are sampled independently, so the paths aren’t guaranteed to be the exact OT geodesic—but they’re still a clean and effective reference for learning the flow.
+
 
 ### Conditional Flow Matching Loss
 The UNet receives $(x_t, t)$ and predicts a velocity field $v_\theta(x_t, t)$ of the same shape as the image. We optimize the **conditional flow matching (CFM)** loss:
