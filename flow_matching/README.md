@@ -1,6 +1,8 @@
 # Flow Matching on CIFAR-10
+**NOTE:** You only need to complete **ONE** of the following two sections: either Section 3 (Diffusion Models) OR Section 4 (Flow Matching Models).
+
 Please follow the instructions for this part of the assignment in THIS order!
-First, download the pre-trained checkpoint from https://drive.google.com/drive/folders/1gaGwppNBeQRPlXs_uIPVGunyC4WX3ln6
+First, download the pre-trained checkpoint from https://drive.google.com/file/d/16B8a_bElSnCLsNppTQOed7eUwsMcaxv6/view?usp=sharing
 
 Flow matching learns a time-conditioned velocity field that continuously transports a base Gaussian into the data distribution. This section mirrors the diffusion homework setup but switches to the flow-matching formulation described in Lipman et al. (2022) and Liu et al. (2022).
 
