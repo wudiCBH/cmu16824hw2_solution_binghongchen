@@ -28,8 +28,8 @@ def get_optimizers_and_schedulers(gen, disc):
     # The learning rate for the generator should be decayed to 0 over
     # 100K iterations.
     ##################################################################
-    scheduler_discriminator = None
-    scheduler_generator = None
+    scheduler_discriminator = torch.optim.lr_scheduler.CosineAnnealingLR(optim_discriminator, T_max=5e5)
+    scheduler_generator = torch.optim.lr_scheduler.CosineAnnealingLR(optim_generator, T_max=1e5)
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
@@ -105,8 +105,10 @@ def train_model(
                 # 2. Compute discriminator output on the train batch.
                 # 3. Compute the discriminator output on the generated data.
                 ##################################################################
-                discrim_real = None
-                discrim_fake = None
+                num_samples = train_batch.shape[0] * 128
+                gen_output = gen(num_samples) # (batch_size, 128, 32, 32)
+                discrim_real = disc(train_batch) # (batch_size, 1)
+                discrim_fake = disc(gen_output) # (batch_size, 1)
                 ##################################################################
                 #                          END OF YOUR CODE                      #
                 ##################################################################
@@ -115,8 +117,11 @@ def train_model(
                 # TODO 1.5 Compute the interpolated batch and run the
                 # discriminator on it.
                 ###################################################################
-                interp = None
-                discrim_interp = None
+                epson = torch.rand(train_batch.shape[0],1, 1, 1)  # (batch_size, 1, 1, 1)
+                epson = epson.cuda()
+                # print("epson device is {}, train batch device is {}, gen_output device is ".format(epson.device, train_batch.device, gen_output.device))
+                interp = epson * train_batch + (1 - epson) * gen_output  # (batch_size, 128, 32, 32)
+                discrim_interp = disc(interp) # (batch_size, 1)
                 ##################################################################
                 #                          END OF YOUR CODE                      #
                 ##################################################################
@@ -136,8 +141,9 @@ def train_model(
                     # TODO 1.2: Compute generator and discriminator output on
                     # generated data.
                     ###################################################################
-                    fake_batch = None
-                    discrim_fake = None
+                    num_samples = batch_size * 128
+                    fake_batch = gen(num_samples) # (batch_size, 128, 32, 32)
+                    discrim_fake = disc(fake_batch) # (batch_size, 1)
                     ##################################################################
                     #                          END OF YOUR CODE                      #
                     ##################################################################
@@ -156,7 +162,9 @@ def train_model(
                         # TODO 1.2: Generate samples using the generator.
                         # Make sure they lie in the range [0, 1]!
                         ##################################################################
-                        generated_samples = None
+                        num_samples = batch_size * 128
+                        generated_samples = gen(num_samples) # (batch_size, 128, 32, 32)
+                        generated_samples = generated_samples.clamp(min=0,max=1)
                         ##################################################################
                         #                          END OF YOUR CODE                      #
                         ##################################################################
