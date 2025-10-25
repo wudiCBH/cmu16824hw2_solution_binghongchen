@@ -25,38 +25,38 @@ class DiffusionModel(nn.Module):
         self.channels = self.model.channels
         self.device = torch.cuda.current_device()
 
-        self.betas = cosine_beta_schedule(timesteps).to(self.device)
+        self.betas = cosine_beta_schedule(timesteps).to(self.device) #(self.num_timesteps,)
         self.num_timesteps = self.betas.shape[0]
 
-        alphas = 1. - self.betas
+        alphas = 1. - self.betas #(self.num_timesteps,)
         ##################################################################
         # TODO 3.1: Compute the cumulative products for current and
         # previous timesteps.
         ##################################################################
-        self.alphas_cumprod = None
-        self.alphas_cumprod_prev =  None
+        self.alphas_cumprod = alphas.cumprod(dim=0) #(self.num_timesteps,)
+        self.alphas_cumprod_prev = torch.cat([torch.tensor([1.0], device=self.betas.device), self.alphas_cumprod[:-1]]) #(self.num_timesteps)
 
         ##################################################################
         # TODO 3.1: Pre-compute values needed for forward process.
         ##################################################################
         # This is the coefficient of x_t when predicting x_0
-        self.x_0_pred_coef_1 = None
+        self.x_0_pred_coef_1 = self.alphas_cumprod.rsqrt() #(self.num_timesteps,)
         # This is the coefficient of pred_noise when predicting x_0
-        self.x_0_pred_coef_2 = None
+        self.x_0_pred_coef_2 = (1 - self.alphas_cumprod).sqrt()
 
         ##################################################################
         # TODO 3.1: Compute the coefficients for the mean.
         ##################################################################
         # This is coefficient of x_0 in the DDPM section
-        self.posterior_mean_coef1 = None
+        self.posterior_mean_coef1 = self.alphas_cumprod_prev.sqrt() / (1 - self.alphas_cumprod) * self.betas #(self.num_timesteps)
         # This is coefficient of x_t in the DDPM section
-        self.posterior_mean_coef2 = None
+        self.posterior_mean_coef2 = alphas.sqrt() * (1 - self.alphas_cumprod_prev) / (1 - self.alphas_cumprod) #(self.num_timesteps)
 
         ##################################################################
         # TODO 3.1: Compute posterior variance.
         ##################################################################
         # Calculations for posterior q(x_{t-1} | x_t, x_0) in DDPM
-        self.posterior_variance = None
+        self.posterior_variance = (1 - self.alphas_cumprod_prev) / (1 - self.alphas_cumprod) * self.betas #(self.num_timesteps)
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -89,10 +89,11 @@ class DiffusionModel(nn.Module):
         # get_posterior_parameters() for usage examples.
         # 
         ##################################################################
-        pred_noise = None
-        x_0 = None
         
         # TODO 3.1: Make sure to clamp x_0 between -1 and 1.0
+        pred_noise = self.model(x_t, t)
+        x_0 = extract(self.x_0_pred_coef_1, t, x_t.shape) * (x_t - extract(self.x_0_pred_coef_2, t, x_t.shape) * pred_noise)
+        x_0 = x_0.clamp(min=-1.0, max = 1.0)
         
         ##################################################################
         #                          END OF YOUR CODE                      #
@@ -108,8 +109,12 @@ class DiffusionModel(nn.Module):
         # Hint: To do this, you will need a predicted x_0. You should've
         # already implemented a function to give you x_0 above!
         ##################################################################
-        pred_img = None
-        x_0 = None
+        pred_noise, x_0 = self.model_predictions(x, t)
+        posterior_mean, posterior_variance, posterior_log_variance_clipped = self.get_posterior_parameters(x_0, x, t)
+        # print("posterior_mean is {}, posterior_log_variance_clipped is {}".format(posterior_mean.shape, posterior_log_variance_clipped.shape))
+        noise = torch.randn_like(x)
+
+        pred_img = posterior_mean + torch.exp(0.5 * posterior_log_variance_clipped) * noise
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -142,21 +147,26 @@ class DiffusionModel(nn.Module):
         if tau_isub1 < 0:
             tau_isub1 = 0        
 
-        
-        x_0 = None
+        batched_tau_i = torch.full((img.shape[0],), tau_i, device=self.device, dtype=torch.long)
+        batched_tau_isub1 = torch.full((img.shape[0],), tau_isub1, device=self.device, dtype=torch.long)
+        pred_noise, x_0 = model_predictions(img, batched_tau_i)
 
         # Step 2: Extract \alpha_{\tau_{i - 1}} and \alpha_{\tau_{i}}
-        pass
+        alpha_tau_isub1 = extract(alphas_cumprod, batched_tau_isub1, img.shape) #(batch,1,1,1)
+        alpha_tau_i = extract(alphas_cumprod, batched_tau_i, img.shape) #(batch,1,1,1)
+        beta_tau_i = extract(self.betas, batched_tau_i, img.shape) #(batch,1,1,1)
 
         # Step 3: Compute \sigma_{\tau_{i}}
-        pass
+        sigma_tau_i = eta * (1 - alpha_tau_isub1) / (1 - alpha_tau_i) * beta_tau_i #(batch,1,1,1) 
+        log_sigma_tau_i_clip = torch.log(sigma_tau_i.clamp(min =1e-20)) # 2 log std
 
         # Step 4: Compute the coefficient of \epsilon_{\tau_{i}}
-        pass
+        miu_tau_i = alpha_tau_isub1.sqrt() * x_0 + (1 - alpha_tau_isub1 - sigma_tau_i).sqrt() * pred_noise
 
         # Step 5: Sample from q(x_{\tau_{i - 1}} | x_{\tau_t}, x_0)
         # HINT: Use the reparameterization trick
-        img = None
+        epson = torch.randn_like(img)
+        img = miu_tau_i + torch.exp(0.5 * log_sigma_tau_i_clip) * epson 
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################

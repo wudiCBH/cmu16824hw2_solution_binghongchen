@@ -105,7 +105,7 @@ def train_model(
                 # 2. Compute discriminator output on the train batch.
                 # 3. Compute the discriminator output on the generated data.
                 ##################################################################
-                num_samples = train_batch.shape[0] * 128
+                num_samples = train_batch.shape[0] #batch_size
                 gen_output = gen(num_samples) # (batch_size, 128, 32, 32)
                 discrim_real = disc(train_batch) # (batch_size, 1)
                 discrim_fake = disc(gen_output) # (batch_size, 1)
@@ -141,7 +141,7 @@ def train_model(
                     # TODO 1.2: Compute generator and discriminator output on
                     # generated data.
                     ###################################################################
-                    num_samples = batch_size * 128
+                    num_samples = batch_size
                     fake_batch = gen(num_samples) # (batch_size, 128, 32, 32)
                     discrim_fake = disc(fake_batch) # (batch_size, 1)
                     ##################################################################
@@ -162,9 +162,9 @@ def train_model(
                         # TODO 1.2: Generate samples using the generator.
                         # Make sure they lie in the range [0, 1]!
                         ##################################################################
-                        num_samples = batch_size * 128
+                        num_samples = batch_size 
                         generated_samples = gen(num_samples) # (batch_size, 128, 32, 32)
-                        generated_samples = generated_samples.clamp(min=0,max=1)
+                        generated_samples = (generated_samples + 1) / 2 # change [-1,1] to [0,1]
                         ##################################################################
                         #                          END OF YOUR CODE                      #
                         ##################################################################

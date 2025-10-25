@@ -167,6 +167,7 @@ class ResBlockDown(torch.jit.ScriptModule):
         # it to the layer output.
         ##################################################################
         x = self.downsample_residual(x) + self.layers(x)
+        
         return x
         ##################################################################
         #                          END OF YOUR CODE                      #
@@ -318,8 +319,7 @@ class Generator(torch.jit.ScriptModule):
         # TODO 1.1: Generate n_samples latents and forward through the
         # network.
         ##################################################################
-        z = torch.randn(n_samples) # (n_samples,)
-        z = z.view(-1, self.in_features) # (batch_size, 128)
+        z = torch.randn(n_samples, self.in_features) # (batch size, 128)
         z = z.cuda()
         out = self.forward_given_samples(z)
 
@@ -410,7 +410,7 @@ class Discriminator(torch.jit.ScriptModule):
         # dimensions after passing x through self.layers.
         ##################################################################
         x = self.layers(x) #(Batch_size, channel, H, W)
-        B, C, H, w = x.shape
+        # B, C, H, w = x.shape
         x = x.sum(dim=(2,3)) #(Batch_size, channel)
         x = self.dense(x) #(Batch_size, 1)
 
